@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 
 """
 This module creates the functions used for pre_processing the stock data into a format suitable for training
