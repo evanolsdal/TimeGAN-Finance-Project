@@ -14,7 +14,7 @@ class Generator:
 
         model = ks.models.Sequential(name="Generator")
         model.add(Input(shape=self.input_shape))
-        for i in range(self.n_layers):
+        for i in range(self.n_layers+1):
             model.add(GRU(units=self.embedded_units, return_sequences=True))
         model.add(Dense(units = self.embedded_units, activation = 'tanh'))
 
@@ -31,12 +31,11 @@ class Recovery:
     # next we define our network parts
     def build_network_part(self):
 
-        model = ks.models.Sequential(name="Discriminator")
+        model = ks.models.Sequential(name="Recovery")
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
             model.add(GRU(units=self.num_features, return_sequences=True))
-        model.add(Dense(units=self.num_features)
-        model.add(Dense(units=self.num_features)
+        model.add(Dense(units=self.num_features, activation = None))
 
         return model
 
@@ -61,24 +60,25 @@ class Embedder:
 
 class Discriminator:
 
-    def __init__(self, input_shape, dropout_rate, n_layers):
+    def __init__(self, input_shape, n_layers):
 
         self.input_shape = input_shape
         self.n_layers = n_layers
-        self.dropout_rate = dropout_rate
 
     # next we define our network parts
     def build_network_part(self):
 
-        new_n_layers = round(self.n_layers/2)
+        # maybe we will add less layers
+        # new_n_layers = round(self.n_layers/2)
 
-        model = ks.models.Sequential(name="Reconstructor")
+        new_n_layers = self.n_layers
+
+        model = ks.models.Sequential(name="Discriminator")
         model.add(Input(shape=self.input_shape))
         for i in range(new_n_layers):
             model.add(Bidirectional(GRU(units=self.input_shape[1], return_sequences=True)))
-            model.add(Dropout(self.dropout_rate))
         model.add(Flatten())
-        model.add(Dense(units = 1, activation = 'sigmoid')
+        model.add(Dense(units = 1, activation = 'sigmoid'))
 
         return model
 
