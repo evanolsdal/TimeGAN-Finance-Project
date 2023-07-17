@@ -1,6 +1,7 @@
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from src import networkparts
+import numpy
 
 """
 This module defines the TimeGAN model. 
@@ -104,11 +105,13 @@ class TimeGAN(Model):
     """
     def train_supervisor_step(self, batch):
 
-        X = batch
+        # first get the batch and reshape it to the generators desired format
+        X = batch.reshape
 
         with tf.GradientTape() as tape:
+
             # compute the recovered data
-            E = self.embedder(X, traning=False)
+            E = self.embedder(X, training=False)
             E_supervised = self.supervisor(E, training = False)
 
             # compute the loss
@@ -143,7 +146,7 @@ class TimeGAN(Model):
         with tf.GradientTape() as tape:
 
             # generate the fake data and the supervised sequence of that data
-            E_hat = self.generator(Z, traning = True)
+            E_hat = self.generator(Z, training = True)
             E_hat_supervised = self.supervisor(E_hat, training = False)
 
             # compute the supervised loss
@@ -184,10 +187,10 @@ class TimeGAN(Model):
             E_hat = self.generator(Z, training = False)
             Y_hat_real = self.discriminator(E, training = True)
             Y_hat_fake = self.discriminator(E_hat, training = True)
-            Y_hat = tf.concat(Y_hat_real, Y_hat_fake)
+            Y_hat = tf.concat([Y_hat_real, Y_hat_fake], axis=0)
 
             # Create the real labels for the discriminator outputs
-            Y = tf.concat(tf.zeros_like(Y_hat_real), tf.ones_like(Y_hat_fake))
+            Y = tf.concat([tf.zeros_like(Y_hat_real), tf.ones_like(Y_hat_fake)], axis=0)
 
             # compute the unsupervised discriminator loss
             discriminator_loss = self.unsupervised_loss(Y, Y_hat)
@@ -197,6 +200,8 @@ class TimeGAN(Model):
         trainable_variables = self.discriminator.trainable_variables
         grad = tape.gradient(discriminator_loss, trainable_variables)
         tf.keras.optimizers.Adam().apply_gradients(zip(grad, trainable_variables))
+
+        return discriminator_loss
 
 
     ####################################################################################################################
@@ -212,17 +217,14 @@ class TimeGAN(Model):
 
         print(f"Starting Autoencoder Training")
 
-        # generate the initial batched data set
-        batched_data = self.batch_data(x_train)
-
         # create empty array to store the loss at each step of each epoch
         losses = []
 
         # iterate over the data epochs number of times
         for epoch in range(epochs):
 
-            # reshuffle the data in each epoch
-            batched_data = batched_data.shuffle(buffer_size=len(x_train))
+            # generate the batched data set
+            batched_data = self.batch_data(x_train)
 
             # create an empty array for the loss at each step in epoch
             epoch_losses = []
@@ -252,17 +254,14 @@ class TimeGAN(Model):
 
         print(f"Starting Supervisor Training")
 
-        # generate the initial batched data set
-        batched_data = self.batch_data(x_train)
-
         # create empty array to store the loss at each step of each epoch
         losses = []
 
         # iterate over the data epochs number of times
         for epoch in range(epochs):
 
-            # reshuffle the data in each epoch
-            batched_data = batched_data.shuffle(buffer_size=len(x_train))
+            # generate the batched data set
+            batched_data = self.batch_data(x_train)
 
             # create an empty array for the loss at each step in epoch
             epoch_losses = []
@@ -292,17 +291,14 @@ class TimeGAN(Model):
 
         print(f"Starting Dynamic Training")
 
-        # generate the initial batched data set
-        batched_data = self.batch_data(x_train)
-
         # create empty array to store the loss at each step of each epoch
         losses = []
 
         # iterate over the data autoencoder_epochs number of times
         for epoch in range(epochs):
 
-            # reshuffle the data in each epoch
-            batched_data = batched_data.shuffle(buffer_size=len(x_train))
+            # generate the batched data set
+            batched_data = self.batch_data(x_train)
 
             # create an empty array for the loss at each step in epoch
             epoch_losses = []
@@ -313,7 +309,8 @@ class TimeGAN(Model):
                 # we then train the generator k times at each step
 
                 # first create a temporary holder for the generator losses
-                gen_s_loss, gen_u_loss = 0
+                gen_s_loss = 0
+                gen_u_loss = 0
 
                 for i in range(k):
 
@@ -354,7 +351,7 @@ class TimeGAN(Model):
     # returns num_samples of random normal noise in correct input shape for generator
     def get_noise(self, num_samples):
 
-        return tf.random.normal((num_samples, self.dimensions.get(seq_length), self.dimensions.get(num_features)))
+        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))
 
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
@@ -362,7 +359,6 @@ class TimeGAN(Model):
         dataset = tf.data.Dataset.from_tensor_slices(x_train)
         dataset = dataset.shuffle(buffer_size=len(x_train))
         dataset = dataset.batch(self.batch_size)
-        dataset = dataset.repeat()
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
         return dataset
