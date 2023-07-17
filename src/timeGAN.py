@@ -48,7 +48,7 @@ class TimeGAN(Model):
         self.embedder = networkparts.Embedder((seq_len, features), embed, n).build_network_part()
         self.recovery = networkparts.Recovery((seq_len, embed), features, n).build_network_part()
 
-    # Defines the loss functions used for the training of the model
+    # compiles the model before taining the model
     def compile(self, *args, **kwargs):
 
         super().compile(*args, **kwargs)
@@ -83,7 +83,7 @@ class TimeGAN(Model):
 
         with tf.GradientTape() as tape:
             # compute the recovered data
-            E = self.embedder(X, traning=True)
+            E = self.embedder(X, training=True)
             X_hat = self.recovery(E, training=True)
 
             # compute the loss
