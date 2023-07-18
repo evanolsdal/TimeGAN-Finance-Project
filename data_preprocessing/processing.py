@@ -9,15 +9,13 @@ This module creates the functions used for pre_processing the stock data into a 
 # This function loads the data placed in the data subfolder, where the path argument is the name of the data in that
 # folder. The function loads in the csv into a pandas df, then converts this to np array and reverses the order so
 # the data is chronologically ordered.
-def import_data(path, dates, volume_included):
+def import_data(path, dates):
 
 
     if dates:
         return pd.read_csv(f"data/{path}").values[:,0][::-1]
-    elif volume_included:
-        return pd.read_csv(f"data/{path}").values[:,1:][::-1]
     else:
-        return pd.read_csv(f"data/{path}").values[:,1:-1][::-1]
+        return pd.read_csv(f"data/{path}").values[:,1:][::-1]
 
 
 # This function transforms the values into percent changes

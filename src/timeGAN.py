@@ -1,3 +1,4 @@
+import numpy as np
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from src import networkparts
@@ -13,7 +14,10 @@ Inputs:
         - embedded_dims: number of dimensions desired for hidden layers
     - model_parameters: a dict containing all of the parameters used to set up the model
         - n_layers: number of layers desired for each time step
-        - supervised_regularization: regularizes the supervised loss in the generator loss function
+        - mu_g: regularizes the generator supervised loss in the generator step
+        - mu_e: regularizes the embedder supervised loss in the generator step
+        - lambda: regularizes the supervised loss in the autoencoder supervised loss function
+        - alpha: learning rate for the Adam optimizer
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
@@ -73,102 +77,123 @@ class TimeGAN(Model):
     ####################################################################################################################
 
     """
-    This trains the embedder and recovery function simultaneously for the encoded representation of the real data. The
-    step aims to minimize the euclidian distance between the real data and the data recovered from the embedder. This
-    ensures both that an effective embedded representation has been found, as well as an effective way of recovering the 
-    data from this embedded represent has been found (so samples from the generator can be recovered after training).
+    This trains the embedder, recovery, and supervisor function simultaneously. The losses and network parts
+    break down as follows:
+    
+    - Reconstruction: The embedder and recovery make up the two way mapping between the embedded and regular representation 
+    of the data. They are trained to minimize the euclidian distance between the real data, and the data recovered from 
+    the embedder. This ensures that both an effective embedded representation, as well as an effective way of recovering 
+    the data from this embedded represent, is found (so samples from the generator can be recovered after training).
+    
+    - Supervised: At the same time the supervisor is trained to capture the stepwise dynamics of the real data in the embedded 
+    space. The stepwise dynamics are learned by minimizing the distance between it's output and the output of the next 
+    timestep in the real data. This way the supervisor learns how steps within the real data are taken.  By training the 
+    supervisor in conjunction with the embedder, the embedder also learns a representation that's more favorable for the 
+    supervisor. 
+    
     """
     def train_autoencoder_step(self, batch):
 
+        # define input
         X = batch
 
+        # combine the trainable variables before training so they can be kept track of in tape
+        trainable_vars = self.embedder.trainable_variables + self.recovery.trainable_variables + self.supervisor.trainable_variables
+
+
         with tf.GradientTape() as tape:
-            # compute the recovered data
+
+            # watch the trainable variables
+            tape.watch(trainable_vars)
+
+            # compute the recovered and supervised data
             E = self.embedder(X, training=True)
+            H = self.supervisor(E, training=True)
             X_hat = self.recovery(E, training=True)
 
-            # compute the loss
-            reconstruction_loss = self.reconstruction_loss(X, X_hat)
+            # compute the losses
+            S_loss = self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
+            R_loss = self.reconstruction_loss(X, X_hat)
 
-
-        # compute and apply the gradient
-        trainable_variables = self.embedder.trainable_variables + self.recovery.trainable_variables
-        grad = tape.gradient(reconstruction_loss, trainable_variables)
-        tf.keras.optimizers.Adam().apply_gradients(zip(grad, trainable_variables))
-
-        return reconstruction_loss
-
-    """
-    This trains the supervisor to learn the stepwise dynamics of the real data in the embedded space. The stepwise
-    dynamics are learned by minimizing the distance between it's output and the output of the next timestep in the
-    real data. This way the supervisor learns how steps within the real data are taken. 
-    """
-    def train_supervisor_step(self, batch):
-
-        # first get the batch and reshape it to the generators desired format
-        X = batch.reshape
-
-        with tf.GradientTape() as tape:
-
-            # compute the recovered data
-            E = self.embedder(X, training=False)
-            E_supervised = self.supervisor(E, training = False)
-
-            # compute the loss
-            supervised_loss = self.supervised_loss(E[:,1:,:], E_supervised[:,:-1,:])
-
+            # combine the losses
+            total_loss = S_loss + self.model_parameters.get("lambda")* R_loss
 
         # compute and apply the gradient
-        trainable_variables = self.supervisor.trainable_variables
-        grad = tape.gradient(supervised_loss, trainable_variables)
-        tf.keras.optimizers.Adam().apply_gradients(zip(grad, trainable_variables))
+        grads = tape.gradient(total_loss, trainable_vars)
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grads, trainable_vars))
 
-        return supervised_loss
+        return S_loss, R_loss
 
     """
-    This trains the generator in the dynamic game with the discriminator. It updates the generator in two stages, first
-    minimizing the supervised loss, then minimizing the unsupervised loss. It breaks down as follows:
+    This trains the generator in the dynamic game with the discriminator. It simultaneously updates the generator,
+    embedder, supervisor, and recovery. The losses and network parts breaks down as follows:
     
-    1) First, the generator output is fed through the supervisor, and the new supervised loss is 
+    - Supervised_generator: The generator output is fed through the supervisor, and the new supervised loss is 
     computed with respect to the generator output. Since the supervisor is trained to mimic the stepwise dynamics of 
     the real data, this new loss forces the generators representation to adhere to those same stepwise dynamics by
     minimizing the distance between what the supervisor thinks the next timestep would be if the data was real,
-    and the generators actual next timestep.
-    2) Second, the generator output is fed to the discriminator, generating a label for whether or not the discriminator
+    and the generators actual next timestep. 
+    
+    - Supervised_embedder: At the same time the supervisor is fed real data from the embedder, and computes the 
+    supervised loss with respect to the real embedded output. By updating the supervisor on both supervised losses, it
+    synchronize the embedded representation with the generators representation. By adapting to the generator loss, the 
+    supervisor captures how the generator currently performs its step. Then the embedded loss ensures that the supervisor
+    still adheres to the stepwise properties of the real data. At the same time, when the embedder also updated on the 
+    supervised loss. Since the supervisor now also takes into account the generators stepwise properties, this forces
+    the embedder to adapt its representation closer to that of the generator while remaining an accurate embedded
+    representation of the real data. Overall, this joint minimization procedure aids the generator in learning the stepwise 
+    properties of the real data.
+    
+    - Reconstruction: This is the same as the reconstruction in the autoencoder training, and simply ensures that both
+    the embedder and the generator still create an effective latent mapping for the data.
+    
+    - Unsupervised: The generator output is fed to the discriminator, generating a label for whether or not the discriminator
     thinks this output is real. This output is then given the target label corresponding to real data (zero in this case),
     and the binary cross entropy is computed as the loss. By minimizing this loss, the generator is rewarded for getting
     the discriminator to label it's output as real.
+    
     """
-    def train_generator_step(self):
+    def train_generator_step(self, batch):
 
+        # define input
         Z = self.get_noise(self.batch_size)
+        X = batch
 
+        # combine the trainable variables before training so they can be kept track of in tape
+        trainable_vars = (self.generator.trainable_variables +
+                          self.embedder.trainable_variables +
+                          self.supervisor.trainable_variables +
+                          self.recovery.trainable_variables)
+
+        # create the tape for the loss function
         with tf.GradientTape() as tape:
+            # watch the trainable variables
+            tape.watch(trainable_vars)
 
-            # generate the fake data and the supervised sequence of that data
-            E_hat = self.generator(Z, training = True)
-            E_hat_supervised = self.supervisor(E_hat, training = False)
-
-            # compute the supervised loss
-            supervised_loss = self.supervised_loss(E_hat[:,1:,:], E_hat_supervised[:,:-1,:])
-
-            # get the discriminator labels for the generators data and make corresponding target same as real data
-            Y_hat = self.discriminator(E_hat, training = False)
+            # compute the all of network outputs
+            E = self.embedder(X, training=True)
+            E_hat = self.generator(Z, training=True)
+            H_e = self.supervisor(E, training=True)
+            H_g = self.supervisor(E_hat, training=True)
+            X_hat = self.recovery(E, training=True)
+            Y_hat = self.discriminator(E_hat, training=False)
             Y = tf.zeros_like(Y_hat)
 
-            # compute the unsupervised loss
-            unsupervised_loss = self.unsupervised_loss(Y, Y_hat)
+            # compute the losses
+            S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+            S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
+            R_loss = self.reconstruction_loss(X, X_hat)
+            U_loss = self.unsupervised_loss(Y, Y_hat)
 
-            # add the supervised and unsupervised loss adding a dampening parameter to the supervised loss
-            generator_loss = unsupervised_loss + self.model_parameters.get("supervised_regularization")* supervised_loss
-
+            # combine the losses
+            total_loss = U_loss + R_loss + self.model_parameters.get("mu_e")*S_loss_e + self.model_parameters.get("mu_g")*S_loss_g
 
         # compute and apply the gradient
-        trainable_variables = self.generator.trainable_variables
-        grad = tape.gradient(generator_loss, trainable_variables)
-        tf.keras.optimizers.Adam().apply_gradients(zip(grad, trainable_variables))
+        grads = tape.gradient(total_loss, trainable_vars)
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grads, trainable_vars))
 
-        return supervised_loss, unsupervised_loss
+        return S_loss_e, S_loss_g, R_loss, U_loss
+
 
     """
     This trains the discriminator in the dynamic game with the generator. The discriminator gets fed real embedded
@@ -199,7 +224,7 @@ class TimeGAN(Model):
         # compute and apply the gradient
         trainable_variables = self.discriminator.trainable_variables
         grad = tape.gradient(discriminator_loss, trainable_variables)
-        tf.keras.optimizers.Adam().apply_gradients(zip(grad, trainable_variables))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grad, trainable_variables))
 
         return discriminator_loss
 
@@ -233,54 +258,19 @@ class TimeGAN(Model):
             for step, batch in enumerate(batched_data):
 
                 # train the model and return the reconstruction loss
-                reconstruction_loss = self.train_autoencoder_step(batch)
+                S_loss, R_loss = self.train_autoencoder_step(batch)
 
-                # append the loss
-                epoch_losses.append(reconstruction_loss)
+                # store current losses
+                epoch_losses.append([R_loss, S_loss])
 
-                print(f"Epoch {epoch}, step {step}: Reconstruction loss = {reconstruction_loss}")
+                print(f"Epoch {epoch}, step {step}: Reconstruction loss = {R_loss}, Supervised loss = {S_loss}")
 
-            losses.append(epoch_losses)
+            # append the average losses for the epoch
+            losses.append([np.mean(np.array(epoch_losses)[:,0]), np.mean(np.array(epoch_losses)[:,1])])
 
         print(f"Finished Autoencoder Training")
 
-        return losses
-
-
-    """
-    This runs the full training for the supervisor
-    """
-    def fit_supervisor(self, x_train, epochs):
-
-        print(f"Starting Supervisor Training")
-
-        # create empty array to store the loss at each step of each epoch
-        losses = []
-
-        # iterate over the data epochs number of times
-        for epoch in range(epochs):
-
-            # generate the batched data set
-            batched_data = self.batch_data(x_train)
-
-            # create an empty array for the loss at each step in epoch
-            epoch_losses = []
-
-            # iterate over all batches in the batched data set
-            for step, batch in enumerate(batched_data):
-                # train the model and return the reconstruction loss
-                supervised_loss = self.train_supervisor_step(batch)
-
-                # append the loss
-                epoch_losses.append(supervised_loss)
-
-                print(f"Epoch {epoch}, step {step}: Supervised loss = {supervised_loss}")
-
-            losses.append(epoch_losses)
-
-        print(f"Finished Supervisor Training")
-
-        return losses
+        return {"Supervised Loss": [loss[0] for loss in losses], "Reconstruction Loss": [loss[1] for loss in losses]}
 
     """
     This runs the full training for the dynamic game. This is a little more involved. First the generator is trained 
@@ -306,42 +296,45 @@ class TimeGAN(Model):
             # iterate over all batches in the batched data set
             for step, batch in enumerate(batched_data):
 
-                # we then train the generator k times at each step
+                # in every step run the generator sequence
+                S_loss_e, S_loss_g, R_loss, U_loss_g = self.train_generator_step(batch)
 
-                # first create a temporary holder for the generator losses
-                gen_s_loss = 0
-                gen_u_loss = 0
 
-                for i in range(k):
+                # train the discriminator every k steps
+                U_loss_d = None
+                if step % k == k-1:
+                    U_loss_d = self.train_discriminator_step(batch)
 
-                    # train the generator and return the supervised and unsupervised losses
-                    gen_s_loss, gen_u_loss = self.train_generator_step()
-
-                # then train the discriminator
-                disc_u_loss = self.train_discriminator_step(batch)
 
                 # append the three losses to the epoch losses
-                epoch_losses.append([gen_s_loss, gen_u_loss, disc_u_loss])
+                epoch_losses.append([R_loss, S_loss_e, S_loss_g, U_loss_g, U_loss_d])
 
-                print(f"Epoch {epoch}, step {step}: Generator S loss = {gen_s_loss}, Generator U loss = {gen_u_loss}, Discriminator U loss = {disc_u_loss}")
+                print(f"Epoch {epoch}, step {step}: "
+                      f"Reconstruction loss = {R_loss}, "
+                      f"Supervised E loss = {S_loss_e}, "
+                      f"Supervised G loss = {S_loss_g}, "
+                      f"Unsupervised G loss = {U_loss_g}, "
+                      f"Unsupervised D loss = {U_loss_d}")
 
-            losses.append(epoch_losses)
+            # Next compute the average of each loss from the epoch and append it
+            uld = np.mean(np.array([row[4] for row in epoch_losses if row[4] is not None]))
+
+            epoch_losses = np.array(epoch_losses, dtype=np.float32)
+            rl = np.mean(epoch_losses[:, 0])
+            sle = np.mean(epoch_losses[:, 1])
+            slg = np.mean(epoch_losses[:, 2])
+            ulg = np.mean(epoch_losses[:, 3])
+
+
+            losses.append([rl, sle, slg, ulg, uld])
 
         print(f"Finished Dynamic Training")
 
-        return losses
-
-
-    """
-    Finally define a fit function for training the whole TimeGAN
-    """
-    def fit(self, x_train, autoencoder_epochs, supervisor_epochs, dynamic_epochs, k):
-
-        autoencoder_losses = self.fit_autoencoder(x_train, autoencoder_epochs)
-        supervisor_losses = self.fit_supervisor(x_train, supervisor_epochs)
-        dynamic_losses = self.fit_dynamic_game(x_train, dynamic_epochs, k)
-
-        return autoencoder_losses, supervisor_losses, dynamic_losses
+        return {"Reconstruction Loss": [loss[0] for loss in losses],
+                "Supervised Embedder Loss": [loss[1] for loss in losses],
+                "Supervised Generator Loss": [loss[2] for loss in losses],
+                "Unsupervised Generator Loss": [loss[3] for loss in losses],
+                "Unsupervised Discriminator Loss": [loss[4] for loss in losses]}
 
 
     ####################################################################################################################
