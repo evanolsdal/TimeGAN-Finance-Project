@@ -122,7 +122,7 @@ class TimeGAN(Model):
 
         # compute and apply the gradient
         grads = tape.gradient(total_loss, trainable_vars)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grads, trainable_vars))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_1")).apply_gradients(zip(grads, trainable_vars))
 
         return S_loss, R_loss
 
@@ -192,7 +192,7 @@ class TimeGAN(Model):
 
         # compute and apply the gradient
         grads = tape.gradient(total_loss, trainable_vars)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grads, trainable_vars))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(zip(grads, trainable_vars))
 
         return S_loss_e, S_loss_g, R_loss, U_loss
 
@@ -226,7 +226,7 @@ class TimeGAN(Model):
         # compute and apply the gradient
         trainable_variables = self.discriminator.trainable_variables
         grad = tape.gradient(discriminator_loss, trainable_variables)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha")).apply_gradients(zip(grad, trainable_variables))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(zip(grad, trainable_variables))
 
         return discriminator_loss
 
