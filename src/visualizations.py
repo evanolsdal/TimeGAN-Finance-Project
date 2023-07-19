@@ -9,10 +9,12 @@ This module deals with visualizing the training losses and the data sequences
 
 def plot_real_sequence(dates, data, labels, seq_length):
 
-    # get a random slice to visualize
+    # check if it's possible to slice
+    max_length = len(data)
     if seq_length > max_length:
         raise ValueError("Desired sequence length exceeds the maximum length of the data.")
 
+    # get a random slice to visualize
     start_index = np.random.randint(max_length - seq_length + 1)
     end_index = start_index + seq_length
 
