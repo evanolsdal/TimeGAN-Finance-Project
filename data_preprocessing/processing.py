@@ -32,8 +32,8 @@ def transform_percent_change(data):
 def generate_sequences(data, seq_len):
 
 
-    scaler = Normalizer().fit(data)
-    data = scaler.transform(data)
+    normalizer = Normalizer().fit(data)
+    data = normalizer.transform(data)
 
     temp_data = []
 
@@ -42,6 +42,8 @@ def generate_sequences(data, seq_len):
         x = data[i:i+seq_len,:]
         temp_data.append(x)
 
-    return np.array(temp_data)
+    return np.array(temp_data), normalizer
+
+
 
 

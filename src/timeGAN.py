@@ -23,11 +23,12 @@ Inputs:
         - supervised_loss: supervised loss function
         - unsupervised_loss: unsupervised loss function
     - batch_size: batch size for training
+    - normalizer: the normalizer used for the training data, there for autoencoding later
 """
 
 class TimeGAN(Model):
 
-    def __init__(self, model_dimensions, model_parameters, loss_functions, batch_size, *args, **kwargs):
+    def __init__(self, model_dimensions, model_parameters, loss_functions, batch_size, normalizer, *args, **kwargs):
 
         #superimpose the other init args
         super().__init__(*args, **kwargs)
@@ -36,6 +37,7 @@ class TimeGAN(Model):
         self.model_dimensions = model_dimensions
         self.model_parameters = model_parameters
         self.batch_size = batch_size
+        self.normalizer = normalizer
         self.reconstruction_loss = loss_functions.get("reconstruction_loss")
         self.supervised_loss = loss_functions.get("supervised_loss")
         self.unsupervised_loss = loss_functions.get("unsupervised_loss")
@@ -116,7 +118,7 @@ class TimeGAN(Model):
             R_loss = self.reconstruction_loss(X, X_hat)
 
             # combine the losses
-            total_loss = S_loss + self.model_parameters.get("lambda")* R_loss
+            total_loss = self.model_parameters.get("lambda")*S_loss + R_loss
 
         # compute and apply the gradient
         grads = tape.gradient(total_loss, trainable_vars)
@@ -355,6 +357,28 @@ class TimeGAN(Model):
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
         return dataset
+
+    def generate_seq(self):
+
+        Z = self.get_noise(1)
+        E_hat = self.generator(Z)
+        X_hat = self.recovery(E_hat)
+
+        return tf.squeeze(X_hat)
+
+    def autoencode_seq(self, sequences):
+
+        random_index = np.random.randint(len(sequences))
+
+        X = sequences[random_index, :, :]
+        E = self.embedder(X)
+        X_hat = self.recovery(E)
+
+        return tf.squeeze(X_hat)
+
+
+
+
 
 
 
