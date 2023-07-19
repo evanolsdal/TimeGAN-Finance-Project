@@ -18,7 +18,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     start_index = np.random.randint(max_length - seq_length + 1)
     end_index = start_index + seq_length
 
-    dates = dates[start_index:end_index, :]
+    dates = dates[start_index:end_index]
     data = data[start_index:end_index, :]
 
     # get the number of dimensions
@@ -28,6 +28,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     plt.figure(figsize=(10, 6))
     for dim in range(num_dimensions):
         plt.plot(dates, data[:, dim], label=labels[dim])
+        plt.axhline(y=0, color='red', linestyle='--')
     plt.title('Data with Multiple Dimensions')
     plt.xlabel('Dates')
     plt.ylabel('Value')
@@ -39,6 +40,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     for dim in range(num_dimensions):
         axs[dim].plot(dates, data[:, dim])
         axs[dim].set_title(labels[dim])
+        axs[dim].axhline(y=0, color='red', linestyle='--')
         axs[dim].set_xlabel('Dates')
         axs[dim].set_ylabel('Value')
     plt.tight_layout()
@@ -60,6 +62,7 @@ def plot_generated_sequence(model, sequences, feature):
     plt.figure(figsize=(8, 6))
     plt.plot(generated_seq, label='Generated')
     plt.plot(autoencoded_seq, label='Autoencoded')
+    plt.axhline(y=0, color='red', linestyle='--')
     plt.title('Generated and Autoencoded Sequences')
     plt.xlabel('Time')
     plt.ylabel('Value')
@@ -69,11 +72,13 @@ def plot_generated_sequence(model, sequences, feature):
     # Plotting individual subgraphs
     fig, axs = plt.subplots(2, 1, figsize=(8, 8))
     axs[0].plot(autoencoded_seq)
+    axs[0].axhline(y=0, color='red', linestyle='--')
     axs[0].set_title('Autoencoded Sequence')
     axs[0].set_xlabel('Time')
     axs[0].set_ylabel('Value')
 
     axs[1].plot(generated_seq)
+    axs[1].axhline(y=0, color='red', linestyle='--')
     axs[1].set_title('Generated Sequence')
     axs[1].set_xlabel('Time')
     axs[1].set_ylabel('Value')
@@ -97,6 +102,7 @@ def plot_autoencoded_sequence(model, sequences, feature):
     plt.figure(figsize=(8, 6))
     plt.plot(real_seq, label='Real Sequence')
     plt.plot(autoencoded_seq, label='Autoencoded Sequence')
+    plt.axhline(y=0, color='red', linestyle='--')
     plt.title('Real and Autoencoded Sequences')
     plt.xlabel('Time')
     plt.ylabel('Value')
@@ -106,11 +112,13 @@ def plot_autoencoded_sequence(model, sequences, feature):
     # Plotting individual subgraphs
     fig, axs = plt.subplots(2, 1, figsize=(8, 8))
     axs[0].plot(real_seq)
+    axs[0].axhline(y=0, color='red', linestyle='--')
     axs[0].set_title('Real Sequence')
     axs[0].set_xlabel('Time')
     axs[0].set_ylabel('Value')
 
     axs[1].plot(autoencoded_seq)
+    axs[1].axhline(y=0, color='red', linestyle='--')
     axs[1].set_title('Autoencoded Sequence')
     axs[1].set_xlabel('Time')
     axs[1].set_ylabel('Value')

@@ -1,12 +1,14 @@
+import numpy as np
+
 from src.timeGAN import TimeGAN
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 from data_preprocessing import processing as p
-from src.visualizations import plot_stock_trend
+from src import visualizations as v
 
 
 if __name__ == '__main__':
 
-    model_dimensions = {"seq_length":3, "num_features":5, "embedded_dims":5}
+    """model_dimensions = {"seq_length":3, "num_features":5, "embedded_dims":5}
     model_parameters = {"n_layers":2, "mu_g":.5, "mu_e":1, "lambda":.1, "alpha_1":0.001, "alpha_2":0.001}
     loss_functions = {"reconstruction_loss":MeanSquaredError(),
                       "supervised_loss":MeanSquaredError(),
@@ -29,7 +31,20 @@ if __name__ == '__main__':
 
     dynamic_losses = timeGAN.fit_dynamic_game(data, 3, 2)
 
-    print(dynamic_losses.get("Unsupervised Discriminator Loss"))
+    print(dynamic_losses.get("Unsupervised Discriminator Loss"))"""
+
+    dates = p.import_data("SP500 raw.csv", True)[:16]
+    data = p.import_data("SP500 raw.csv", False)[:16, :]
+    data = p.transform_percent_change(data)
+
+    print(data)
+    print(np.shape(data))
+    print(data[1:4,:])
+
+    seq_length = 3
+    feature_labels = ["Open","High","Low","Close","Volume"]
+
+    v.plot_real_sequence(dates, data, feature_labels, seq_length)
 
 
 
