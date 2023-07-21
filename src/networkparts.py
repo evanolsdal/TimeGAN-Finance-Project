@@ -1,4 +1,4 @@
-from tensorflow import keras as ks
+import tensorflow as tf
 from tensorflow.keras.layers import GRU, Input, Dense, Flatten, Dropout, Reshape, Bidirectional
 
 class Generator:
