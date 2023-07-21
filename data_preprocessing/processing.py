@@ -44,5 +44,3 @@ def generate_sequences(data, seq_len):
 
 
 
-
-

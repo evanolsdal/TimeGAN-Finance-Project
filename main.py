@@ -28,6 +28,7 @@ if __name__ == '__main__':
     v.plot_generated_sequence(timeGAN, sequences, 0, feature_labels)
 
 
+
     """
 
     dates = p.import_data("SP500 raw.csv", True)[:16]
