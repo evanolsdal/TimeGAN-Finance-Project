@@ -19,6 +19,7 @@ Inputs:
         - alpha_1: learning rate for the Adam optimizer
         - alpha_2: learning rate for the Adam optimizer
         - theta: scaling factor for the tanh function
+        - pi: normalizing factor for the data
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
@@ -382,12 +383,14 @@ class TimeGAN(Model):
     # returns num_samples of random normal noise in correct input shape for generator
     def get_noise(self, num_samples):
 
-        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))
+        normalizer = self.model_parameters.get("pi")
+        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))/normalizer
 
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
 
-        dataset = tf.data.Dataset.from_tensor_slices(x_train)
+        normalizer = self.model_parameters.get("pi")
+        dataset = tf.data.Dataset.from_tensor_slices(x_train/normalizer)
         dataset = dataset.shuffle(buffer_size=len(x_train))
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
