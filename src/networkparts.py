@@ -3,11 +3,19 @@ from tensorflow.keras.layers import GRU, Input, Dense, Flatten, Dropout, Reshape
 
 class Generator:
 
-    def __init__(self, input_shape, embedded_units, n_layers):
+    def __init__(self, input_shape, embedded_units, n_layers, scale_tanh):
 
         self.input_shape = input_shape
         self.embedded_units = embedded_units
         self.n_layers = n_layers
+        self.scale_tanh = scale_tanh
+
+    def custom_tanh(self, x):
+
+        tanh_output = tf.keras.backend.tanh(x)
+        scaled_output = tanh_output*self.scale_tanh
+
+        return scaled_output
 
     # next we define our network parts
     def build_network_part(self):
@@ -15,18 +23,25 @@ class Generator:
         model = ks.models.Sequential(name="Generator")
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers+1):
-            model.add(GRU(units=self.embedded_units, return_sequences=True))
-        model.add(Dense(units = self.embedded_units, activation = 'tanh'))
+            model.add(GRU(units=self.embedded_units, return_sequences=True, activation = self.custom_tanh))
+        model.add(Dense(units = self.embedded_units, activation = self.custom_tanh))
 
         return model
 
 class Recovery:
 
-    def __init__(self, input_shape, num_features, n_layers):
+    def __init__(self, input_shape, num_features, n_layers, scale_tanh):
 
         self.input_shape = input_shape
         self.n_layers = n_layers
         self.num_features = num_features
+        self.scale_tanh = scale_tanh
+
+    def custom_tanh(self, x):
+        tanh_output = tf.keras.backend.tanh(x)
+        scaled_output = tanh_output * self.scale_tanh
+
+        return scaled_output
 
     # next we define our network parts
     def build_network_part(self):
@@ -34,18 +49,25 @@ class Recovery:
         model = ks.models.Sequential(name="Recovery")
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
-            model.add(GRU(units=self.num_features, return_sequences=True))
+            model.add(GRU(units=self.num_features, return_sequences=True, activation = self.custom_tanh))
         model.add(Dense(units=self.num_features, activation = None))
 
         return model
 
 class Embedder:
 
-    def __init__(self, input_shape, embedded_units, n_layers):
+    def __init__(self, input_shape, embedded_units, n_layers, scale_tanh):
 
         self.input_shape = input_shape
         self.embedded_units = embedded_units
         self.n_layers = n_layers
+        self.scale_tanh = scale_tanh
+
+    def custom_tanh(self, x):
+        tanh_output = tf.keras.backend.tanh(x)
+        scaled_output = tanh_output * self.scale_tanh
+
+        return scaled_output
 
     # next we define our network parts
     def build_network_part(self):
@@ -53,8 +75,8 @@ class Embedder:
         model = ks.models.Sequential(name="Embedder")
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
-            model.add(GRU(units=self.embedded_units, return_sequences=True))
-        model.add(Dense(units = self.embedded_units, activation = 'tanh'))
+            model.add(GRU(units=self.embedded_units, return_sequences=True, activation = self.custom_tanh))
+        model.add(Dense(units = self.embedded_units, activation = self.custom_tanh))
 
         return model
 
@@ -84,11 +106,18 @@ class Discriminator:
 
 class Supervisor:
 
-    def __init__(self, input_shape, embedded_units, n_layers):
+    def __init__(self, input_shape, embedded_units, n_layers, scale_tanh):
 
         self.input_shape = input_shape
         self.embedded_units = embedded_units
         self.n_layers = n_layers
+        self.scale_tanh = scale_tanh
+
+    def custom_tanh(self, x):
+        tanh_output = tf.keras.backend.tanh(x)
+        scaled_output = tanh_output * self.scale_tanh
+
+        return scaled_output
 
     # next we define our network parts
     def build_network_part(self):
@@ -96,8 +125,8 @@ class Supervisor:
         model = ks.models.Sequential(name="Supervisor")
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
-            model.add(GRU(units=self.embedded_units, return_sequences=True))
-        model.add(Dense(units = self.embedded_units, activation = 'tanh'))
+            model.add(GRU(units=self.embedded_units, return_sequences=True, activation = self.custom_tanh))
+        model.add(Dense(units = self.embedded_units, activation = self.custom_tanh))
 
         return model
 

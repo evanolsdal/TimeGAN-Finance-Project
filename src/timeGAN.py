@@ -18,6 +18,7 @@ Inputs:
         - lambda: regularizes the supervised loss when training the embedder
         - alpha_1: learning rate for the Adam optimizer
         - alpha_2: learning rate for the Adam optimizer
+        - theta: scaling factor for the tanh function
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
@@ -47,13 +48,14 @@ class TimeGAN(Model):
         features = model_dimensions.get("num_features")
         embed = model_dimensions.get("embedded_dims")
         n = model_parameters.get("n_layers")
+        theta = model_parameters.get("theta")
 
         # then add the network parts
-        self.generator = networkparts.Generator((seq_len, features), embed, n).build_network_part()
+        self.generator = networkparts.Generator((seq_len, features), embed, n, theta).build_network_part()
         self.discriminator = networkparts.Discriminator((seq_len, embed), n).build_network_part()
-        self.supervisor = networkparts.Supervisor((seq_len, embed), embed, n).build_network_part()
-        self.embedder = networkparts.Embedder((seq_len, features), embed, n).build_network_part()
-        self.recovery = networkparts.Recovery((seq_len, embed), features, n).build_network_part()
+        self.supervisor = networkparts.Supervisor((seq_len, embed), embed, n, theta).build_network_part()
+        self.embedder = networkparts.Embedder((seq_len, features), embed, n, theta).build_network_part()
+        self.recovery = networkparts.Recovery((seq_len, embed), features, n, theta).build_network_part()
 
     # compiles the model before taining the model
     def compile(self, *args, **kwargs):
