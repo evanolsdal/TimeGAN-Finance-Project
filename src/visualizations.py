@@ -47,7 +47,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     plt.show()
 
 # function that plots a generated and autoencoded sequence on the same graph
-def plot_generated_sequence(model, sequences, feature):
+def plot_generated_sequence(model, sequences, feature, feature_labels):
 
     # get the generated and autoencoded sequence
     generated_seq = model.generate_seq()
@@ -63,7 +63,7 @@ def plot_generated_sequence(model, sequences, feature):
     plt.plot(generated_seq, label='Generated')
     plt.plot(autoencoded_seq, label='Autoencoded')
     plt.axhline(y=0, color='red', linestyle='--')
-    plt.title('Generated and Autoencoded Sequences')
+    plt.title(f"Generated and Autoencoded Sequences for {feature_labels[feature]}")
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.legend()
@@ -73,13 +73,13 @@ def plot_generated_sequence(model, sequences, feature):
     fig, axs = plt.subplots(2, 1, figsize=(8, 8))
     axs[0].plot(autoencoded_seq)
     axs[0].axhline(y=0, color='red', linestyle='--')
-    axs[0].set_title('Autoencoded Sequence')
+    axs[0].set_title(f"Autoencoded Sequences for {feature_labels[feature]}")
     axs[0].set_xlabel('Time')
     axs[0].set_ylabel('Value')
 
     axs[1].plot(generated_seq)
     axs[1].axhline(y=0, color='red', linestyle='--')
-    axs[1].set_title('Generated Sequence')
+    axs[1].set_title(f"Generated Sequences for {feature_labels[feature]}")
     axs[1].set_xlabel('Time')
     axs[1].set_ylabel('Value')
 
@@ -87,12 +87,11 @@ def plot_generated_sequence(model, sequences, feature):
     plt.show()
 
 # function that plots the real and corresponding autoencoded sequence on the same graph
-def plot_autoencoded_sequence(model, sequences, feature):
+def plot_autoencoded_sequence(model, sequences, feature, feature_labels):
 
     # draw the real and encoded sequence
-    seq = sequences[np.random.randint(len(sequences)), :, :]
-    real_seq = np.squeeze(seq)
-    autoencoded_seq = model.autoencode_seq(seq)
+    real_seq = sequences[np.random.randint(len(sequences)), :, :]
+    autoencoded_seq = model.autoencode_seq(real_seq)
 
     # select the dimension feature from the two sequences
     real_seq = real_seq[:, feature]
@@ -103,7 +102,7 @@ def plot_autoencoded_sequence(model, sequences, feature):
     plt.plot(real_seq, label='Real Sequence')
     plt.plot(autoencoded_seq, label='Autoencoded Sequence')
     plt.axhline(y=0, color='red', linestyle='--')
-    plt.title('Real and Autoencoded Sequences')
+    plt.title(f"Real and Autoencoded Sequences for {feature_labels[feature]}")
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.legend()
@@ -113,13 +112,13 @@ def plot_autoencoded_sequence(model, sequences, feature):
     fig, axs = plt.subplots(2, 1, figsize=(8, 8))
     axs[0].plot(real_seq)
     axs[0].axhline(y=0, color='red', linestyle='--')
-    axs[0].set_title('Real Sequence')
+    axs[0].set_title(f"Real Sequences for {feature_labels[feature]}")
     axs[0].set_xlabel('Time')
     axs[0].set_ylabel('Value')
 
     axs[1].plot(autoencoded_seq)
     axs[1].axhline(y=0, color='red', linestyle='--')
-    axs[1].set_title('Autoencoded Sequence')
+    axs[1].set_title(f"Autoencoded Sequences for {feature_labels[feature]}")
     axs[1].set_xlabel('Time')
     axs[1].set_ylabel('Value')
 

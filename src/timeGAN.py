@@ -2,7 +2,6 @@ import numpy as np
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from src import networkparts
-import numpy
 
 """
 This module defines the TimeGAN model. 
@@ -14,16 +13,17 @@ Inputs:
         - embedded_dims: number of dimensions desired for hidden layers
     - model_parameters: a dict containing all of the parameters used to set up the model
         - n_layers: number of layers desired for each time step
-        - mu_g: regularizes the generator supervised loss in the generator step
-        - mu_e: regularizes the embedder supervised loss in the generator step
-        - lambda: regularizes the supervised loss in the autoencoder supervised loss function
-        - alpha: learning rate for the Adam optimizer
+        - mu: regularizes the generator supervised loss when training the generator
+        - phi: regularizes the embedder supervised loss when training the supervisor
+        - lambda: regularizes the supervised loss when training the embedder
+        - alpha_1: learning rate for the Adam optimizer
+        - alpha_2: learning rate for the Adam optimizer
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
         - unsupervised_loss: unsupervised loss function
     - batch_size: batch size for training
-    - normalizer: the normalizer used for the training data, there for autoencoding later
+    - scaler: the scaler used for the training data, there for autoencoding later
 """
 
 class TimeGAN(Model):
@@ -100,7 +100,9 @@ class TimeGAN(Model):
         X = batch
 
         # combine the trainable variables before training so they can be kept track of in tape
-        trainable_vars = self.embedder.trainable_variables + self.recovery.trainable_variables + self.supervisor.trainable_variables
+        trainable_vars = self.embedder.trainable_variables + \
+                         self.recovery.trainable_variables + \
+                         self.supervisor.trainable_variables
 
 
         with tf.GradientTape() as tape:
@@ -118,11 +120,12 @@ class TimeGAN(Model):
             R_loss = self.reconstruction_loss(X, X_hat)
 
             # combine the losses
-            total_loss = self.model_parameters.get("lambda")*S_loss + R_loss
+            total_loss = R_loss + self.model_parameters.get("lambda")*S_loss
 
         # compute and apply the gradient
         grads = tape.gradient(total_loss, trainable_vars)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_1")).apply_gradients(zip(grads, trainable_vars))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_1")).apply_gradients(
+            zip(grads, trainable_vars))
 
         return S_loss, R_loss
 
@@ -154,6 +157,7 @@ class TimeGAN(Model):
     and the binary cross entropy is computed as the loss. By minimizing this loss, the generator is rewarded for getting
     the discriminator to label it's output as real.
     
+    The loss functions are combined in two separate tapes, so the tuning parameters to be incorporated correctly.
     """
     def train_generator_step(self, batch):
 
@@ -161,16 +165,15 @@ class TimeGAN(Model):
         Z = self.get_noise(self.batch_size)
         X = batch
 
-        # combine the trainable variables before training so they can be kept track of in tape
-        trainable_vars = (self.generator.trainable_variables +
+        # combine first set of trainable variables before training so they can be kept track of in tape
+        trainable_vars_1 = (self.generator.trainable_variables +
                           self.embedder.trainable_variables +
-                          self.supervisor.trainable_variables +
                           self.recovery.trainable_variables)
 
-        # create the tape for the loss function
-        with tf.GradientTape() as tape:
+        # create the tape for the first loss function
+        with tf.GradientTape() as tape_1:
             # watch the trainable variables
-            tape.watch(trainable_vars)
+            tape.watch(trainable_vars_1)
 
             # compute the all of network outputs
             E = self.embedder(X, training=True)
@@ -188,11 +191,41 @@ class TimeGAN(Model):
             U_loss = self.unsupervised_loss(Y, Y_hat)
 
             # combine the losses
-            total_loss = U_loss + R_loss + self.model_parameters.get("mu_e")*S_loss_e + self.model_parameters.get("mu_g")*S_loss_g
+            total_loss_1 = U_loss + \
+                         R_loss + \
+                         self.model_parameters.get("lambda")*S_loss_e + \
+                         self.model_parameters.get("mu")*S_loss_g
 
-        # compute and apply the gradient
-        grads = tape.gradient(total_loss, trainable_vars)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(zip(grads, trainable_vars))
+
+        # define the second set of variables (ie just the supervisor)
+        trainable_vars_2 = self.supervisor.trainable_variables
+
+        # create the tape for the second loss function
+        with tf.GradientTape() as tape_2:
+            # watch the trainable variables
+            tape.watch(trainable_vars_2)
+
+            # compute the all of network outputs
+            E = self.embedder(X, training=True)
+            E_hat = self.generator(Z, training=True)
+            H_e = self.supervisor(E, training=True)
+            H_g = self.supervisor(E_hat, training=True)
+
+            # compute the losses
+            S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+            S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
+
+            # combine the losses
+            total_loss_2 = S_loss_e + \
+                         self.model_parameters.get("phi") * S_loss_g
+
+        # compute and apply the gradient for the two groups
+        grads_1 = tape_1.gradient(total_loss_1, trainable_vars_1)
+        grads_2 = tape_2.gradient(total_loss_2, trainable_vars_2)
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(
+            zip(grads_1, trainable_vars_1))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(
+            zip(grads_2, trainable_vars_2))
 
         return S_loss_e, S_loss_g, R_loss, U_loss
 
@@ -226,7 +259,8 @@ class TimeGAN(Model):
         # compute and apply the gradient
         trainable_variables = self.discriminator.trainable_variables
         grad = tape.gradient(discriminator_loss, trainable_variables)
-        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(zip(grad, trainable_variables))
+        tf.keras.optimizers.Adam(learning_rate=self.model_parameters.get("alpha_2")).apply_gradients(
+            zip(grad, trainable_variables))
 
         return discriminator_loss
 
@@ -368,9 +402,16 @@ class TimeGAN(Model):
 
     def autoencode_seq(self, sequences):
 
-        random_index = np.random.randint(len(sequences))
+        # if a single sequence is passed in expand the dimension
+        seq = np.expand_dims(sequences, axis=0)
 
-        X = sequences[random_index, :, :]
+        # if more than one sequence is passed in, randomly pick one of them
+        if sequences.ndim == 3:
+            random_index = np.random.randint(len(sequences))
+            seq = np.expand_dims(sequences[random_index, :, :], axis=0)
+
+        # use the sequence to get the recovered sequence
+        X = seq
         E = self.embedder(X)
         X_hat = self.recovery(E)
 

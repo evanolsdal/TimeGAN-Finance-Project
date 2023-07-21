@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import StandardScaler
 
 """
 This module creates the functions used for pre_processing the stock data into a format suitable for training
@@ -10,7 +10,6 @@ This module creates the functions used for pre_processing the stock data into a 
 # folder. The function loads in the csv into a pandas df, then converts this to np array and reverses the order so
 # the data is chronologically ordered.
 def import_data(path, dates):
-
 
     if dates:
         return pd.read_csv(f"data/{path}").values[:,0][::-1]
@@ -31,9 +30,8 @@ def transform_percent_change(data):
 # This function creates sequenced data from the raw data and returns a numpy array
 def generate_sequences(data, seq_len):
 
-
-    normalizer = Normalizer().fit(data)
-    data = normalizer.transform(data)
+    scaler = StandardScaler().fit(data)
+    data = scaler.transform(data)
 
     temp_data = []
 
@@ -42,7 +40,8 @@ def generate_sequences(data, seq_len):
         x = data[i:i+seq_len,:]
         temp_data.append(x)
 
-    return np.array(temp_data), normalizer
+    return np.array(temp_data), scaler
+
 
 
 

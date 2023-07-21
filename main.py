@@ -8,8 +8,8 @@ from src import visualizations as v
 
 if __name__ == '__main__':
 
-    """model_dimensions = {"seq_length":3, "num_features":5, "embedded_dims":5}
-    model_parameters = {"n_layers":2, "mu_g":.5, "mu_e":1, "lambda":.1, "alpha_1":0.001, "alpha_2":0.001}
+    model_dimensions = {"seq_length":3, "num_features":5, "embedded_dims":5}
+    model_parameters = {"n_layers":2, "mu":.5, "pgi":1, "lambda":.1, "alpha_1":0.001, "alpha_2":0.001}
     loss_functions = {"reconstruction_loss":MeanSquaredError(),
                       "supervised_loss":MeanSquaredError(),
                       "unsupervised_loss":BinaryCrossentropy()}
@@ -18,20 +18,17 @@ if __name__ == '__main__':
     dates = p.import_data("SP500 raw.csv", True)[:16]
     data = p.import_data("SP500 raw.csv", False)[:16,:]
     data = p.transform_percent_change(data)
-    data, normalizer = p.generate_sequences(data, 3)
+    sequences, scaler = p.generate_sequences(data, 3)
 
-    timeGAN = TimeGAN(model_dimensions, model_parameters, loss_functions, batch_size, normalizer)
+    timeGAN = TimeGAN(model_dimensions, model_parameters, loss_functions, batch_size, scaler)
     timeGAN.compile()
 
-    #timeGAN.get_summary()
+    feature_labels = ["Open","High","Low","Close","Volume"]
 
-    #print(timeGAN.batch_data(data))
+    v.plot_generated_sequence(timeGAN, sequences, 0, feature_labels)
 
-    autoencoder = timeGAN.fit_autoencoder(data, 3)
 
-    dynamic_losses = timeGAN.fit_dynamic_game(data, 3, 2)
-
-    print(dynamic_losses.get("Unsupervised Discriminator Loss"))"""
+    """
 
     dates = p.import_data("SP500 raw.csv", True)[:16]
     data = p.import_data("SP500 raw.csv", False)[:16, :]
@@ -44,7 +41,7 @@ if __name__ == '__main__':
     seq_length = 3
     feature_labels = ["Open","High","Low","Close","Volume"]
 
-    v.plot_real_sequence(dates, data, feature_labels, seq_length)
+    v.plot_real_sequence(dates, data, feature_labels, seq_length)"""
 
 
 
