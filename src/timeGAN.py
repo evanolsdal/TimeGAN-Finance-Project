@@ -391,8 +391,8 @@ class TimeGAN(Model):
     # returns num_samples of random normal noise in correct input shape for generator
     def get_noise(self, num_samples):
 
-        normalizer = self.model_parameters.get("pi")
-        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))/normalizer
+        # normalizer = self.model_parameters.get("pi")
+        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))
 
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
