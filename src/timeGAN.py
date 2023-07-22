@@ -281,6 +281,10 @@ class TimeGAN(Model):
 
         print(f"Starting Autoencoder Training")
 
+        # normalize the training data
+        normalizer = self.model_parameters.get("pi")
+        x_train = x_train / normalizer
+
         # create empty array to store the loss at each step of each epoch
         losses = []
 
@@ -319,6 +323,10 @@ class TimeGAN(Model):
     def fit_dynamic_game(self, x_train, epochs, k):
 
         print(f"Starting Dynamic Training")
+
+        # normalize the training data
+        normalizer = self.model_parameters.get("pi")
+        x_train = x_train/normalizer
 
         # create empty array to store the loss at each step of each epoch
         losses = []
@@ -389,8 +397,7 @@ class TimeGAN(Model):
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
 
-        normalizer = self.model_parameters.get("pi")
-        dataset = tf.data.Dataset.from_tensor_slices(x_train/normalizer)
+        dataset = tf.data.Dataset.from_tensor_slices(x_train)
         dataset = dataset.shuffle(buffer_size=len(x_train))
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
@@ -406,6 +413,9 @@ class TimeGAN(Model):
         return tf.squeeze(X_hat)
 
     def autoencode_seq(self, sequences):
+
+        # normalize the real sequence
+        sequences = sequences/self.model_parameters.get("pi")
 
         # if a single sequence is passed in expand the dimension
         seq = np.expand_dims(sequences, axis=0)

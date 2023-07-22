@@ -9,7 +9,7 @@ from src import visualizations as v
 if __name__ == '__main__':
 
     model_dimensions = {"seq_length":3, "num_features":5, "embedded_dims":5}
-    model_parameters = {"n_layers":2, "mu":.5, "pgi":1, "lambda":.1, "alpha_1":0.001, "alpha_2":0.001}
+    model_parameters = {"n_layers":2, "mu":.5, "phi":1, "lambda":.1, "alpha_1":0.001, "alpha_2":0.001, "pi":100}
     loss_functions = {"reconstruction_loss":MeanSquaredError(),
                       "supervised_loss":MeanSquaredError(),
                       "unsupervised_loss":BinaryCrossentropy()}
@@ -25,7 +25,9 @@ if __name__ == '__main__':
 
     feature_labels = ["Open","High","Low","Close","Volume"]
 
-    v.plot_generated_sequence(timeGAN, sequences, 0, feature_labels)
+    #v.plot_generated_sequence(timeGAN, sequences, 0, feature_labels)
+
+    v.plot_autoencoded_sequence(timeGAN, sequences, 0, feature_labels, 100)
 
 
 
