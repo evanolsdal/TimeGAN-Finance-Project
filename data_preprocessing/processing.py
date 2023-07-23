@@ -30,7 +30,7 @@ def transform_percent_change(data):
 # This function creates sequenced data from the raw data and returns a numpy array
 def generate_sequences(data, seq_len, add_ema, ema_size):
 
-    scaler = MinMaxScaler().fit(data)
+    scaler = MinMaxScaler(feature_range=(-1,1)).fit(data)
     data = scaler.transform(data)
 
     temp_data = []
