@@ -176,7 +176,7 @@ class TimeGAN(Model):
         # create the tape for the first loss function
         with tf.GradientTape() as tape_1:
             # watch the trainable variables
-            tape.watch(trainable_vars_1)
+            tape_1.watch(trainable_vars_1)
 
             # compute the all of network outputs
             E = self.embedder(X, training=True)
@@ -207,7 +207,7 @@ class TimeGAN(Model):
         # create the tape for the second loss function
         with tf.GradientTape() as tape_2:
             # watch the trainable variables
-            tape.watch(trainable_vars_2)
+            tape_2.watch(trainable_vars_2)
 
             # compute the all of network outputs
             E = self.embedder(X, training=True)
@@ -384,7 +384,7 @@ class TimeGAN(Model):
     # returns num_samples of random normal noise in correct input shape for generator
     def get_noise(self, num_samples):
 
-        return tf.random.uniform((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("input_features")))
+        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("input_features")))
 
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
