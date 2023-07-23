@@ -28,7 +28,7 @@ def transform_percent_change(data):
 
 
 # This function creates sequenced data from the raw data and returns a numpy array
-def generate_sequences(data, seq_len, add_EMA, ema_size):
+def generate_sequences(data, seq_len, add_ema, ema_size):
 
     scaler = StandardScaler().fit(data)
     data = scaler.transform(data)
@@ -39,8 +39,8 @@ def generate_sequences(data, seq_len, add_EMA, ema_size):
 
         x = data[i:i+seq_len,:]
 
-        if add_EMA:
-            
+        if add_ema:
+
             ema_data = add_EMA(x, ema_size)
             x = np.concatenate((x, ema_data), axis=1)
 
