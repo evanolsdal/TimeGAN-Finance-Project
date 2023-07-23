@@ -90,7 +90,7 @@ def plot_generated_sequence(model, sequences, feature, feature_labels):
 def plot_autoencoded_sequence(model, sequences, feature, feature_labels):
 
     # draw the real and encoded sequence
-    real_seq = sequences[np.random.randint(len(sequences)), :, :5]
+    real_seq = sequences[np.random.randint(len(sequences)), :, :]
     autoencoded_seq = model.autoencode_seq(real_seq)
 
     # select the dimension feature from the two sequences and scale up autoencoded sequence
