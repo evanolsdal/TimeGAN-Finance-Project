@@ -9,7 +9,8 @@ This module defines the TimeGAN model.
 Inputs:
     - model_dimensions: a dict containing all of the dimension needed for the model, namely
         - seq_length: length of time steps
-        - num_features: number of features associated with each time step
+        - input_features: number of features given to the embedder
+        - output_features: number of features to output
         - embedded_dims: number of dimensions desired for hidden layers
     - model_parameters: a dict containing all of the parameters used to set up the model
         - n_layers: number of layers desired for each time step
@@ -46,17 +47,18 @@ class TimeGAN(Model):
 
         # extract important parameters for network part construction
         seq_len = model_dimensions.get("seq_length")
-        features = model_dimensions.get("num_features")
+        input_features = model_dimensions.get("input_features")
+        output_features = model_dimensions.get("output_features")
         embed = model_dimensions.get("embedded_dims")
         n = model_parameters.get("n_layers")
         theta = model_parameters.get("theta")
 
         # then add the network parts
-        self.generator = networkparts.Generator((seq_len, features), embed, n, theta).build_network_part()
+        self.generator = networkparts.Generator((seq_len, input_features), embed, n, theta).build_network_part()
         self.discriminator = networkparts.Discriminator((seq_len, embed), n).build_network_part()
         self.supervisor = networkparts.Supervisor((seq_len, embed), embed, n, theta).build_network_part()
-        self.embedder = networkparts.Embedder((seq_len, features), embed, n, theta).build_network_part()
-        self.recovery = networkparts.Recovery((seq_len, embed), features, n, theta).build_network_part()
+        self.embedder = networkparts.Embedder((seq_len, input_features), embed, n, theta).build_network_part()
+        self.recovery = networkparts.Recovery((seq_len, embed), output_features, n, theta).build_network_part()
 
     # compiles the model before taining the model
     def compile(self, *args, **kwargs):
