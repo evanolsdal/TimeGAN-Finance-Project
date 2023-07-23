@@ -47,7 +47,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     plt.show()
 
 # function that plots a generated and autoencoded sequence on the same graph
-def plot_generated_sequence(model, sequences, feature, feature_labels, normalizer):
+def plot_generated_sequence(model, sequences, feature, feature_labels):
 
     # get the generated and autoencoded sequence
     generated_seq = model.generate_seq()
@@ -87,7 +87,7 @@ def plot_generated_sequence(model, sequences, feature, feature_labels, normalize
     plt.show()
 
 # function that plots the real and corresponding autoencoded sequence on the same graph
-def plot_autoencoded_sequence(model, sequences, feature, feature_labels, normalize):
+def plot_autoencoded_sequence(model, sequences, feature, feature_labels):
 
     # draw the real and encoded sequence
     real_seq = sequences[np.random.randint(len(sequences)), :, :]
@@ -95,7 +95,7 @@ def plot_autoencoded_sequence(model, sequences, feature, feature_labels, normali
 
     # select the dimension feature from the two sequences and scale up autoencoded sequence
     real_seq = real_seq[:, feature]
-    autoencoded_seq = autoencoded_seq[:, feature]*normalize
+    autoencoded_seq = autoencoded_seq[:, feature]
 
     # Plotting the combined graph
     plt.figure(figsize=(8, 6))
