@@ -25,7 +25,6 @@ Inputs:
         - supervised_loss: supervised loss function
         - unsupervised_loss: unsupervised loss function
     - batch_size: batch size for training
-    - scaler: the scaler used for the training data, there for autoencoding later
 """
 
 class TimeGAN(Model):
