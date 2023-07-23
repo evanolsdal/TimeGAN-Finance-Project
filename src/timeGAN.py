@@ -20,7 +20,6 @@ Inputs:
         - alpha_1: learning rate for the Adam optimizer
         - alpha_2: learning rate for the Adam optimizer
         - theta: scaling factor for the tanh function
-        - pi: normalizing factor for the data
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
@@ -31,7 +30,7 @@ Inputs:
 
 class TimeGAN(Model):
 
-    def __init__(self, model_dimensions, model_parameters, loss_functions, batch_size, normalizer, *args, **kwargs):
+    def __init__(self, model_dimensions, model_parameters, loss_functions, batch_size, *args, **kwargs):
 
         #superimpose the other init args
         super().__init__(*args, **kwargs)
@@ -40,7 +39,6 @@ class TimeGAN(Model):
         self.model_dimensions = model_dimensions
         self.model_parameters = model_parameters
         self.batch_size = batch_size
-        self.normalizer = normalizer
         self.reconstruction_loss = loss_functions.get("reconstruction_loss")
         self.supervised_loss = loss_functions.get("supervised_loss")
         self.unsupervised_loss = loss_functions.get("unsupervised_loss")
@@ -285,10 +283,6 @@ class TimeGAN(Model):
 
         print(f"Starting Autoencoder Training")
 
-        # normalize the training data
-        normalizer = self.model_parameters.get("pi")
-        x_train = x_train / normalizer
-
         # create empty array to store the loss at each step of each epoch
         losses = []
 
@@ -327,10 +321,6 @@ class TimeGAN(Model):
     def fit_dynamic_game(self, x_train, epochs, k):
 
         print(f"Starting Dynamic Training")
-
-        # normalize the training data
-        normalizer = self.model_parameters.get("pi")
-        x_train = x_train/normalizer
 
         # create empty array to store the loss at each step of each epoch
         losses = []
@@ -395,8 +385,7 @@ class TimeGAN(Model):
     # returns num_samples of random normal noise in correct input shape for generator
     def get_noise(self, num_samples):
 
-        # normalizer = self.model_parameters.get("pi")
-        return tf.random.normal((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("num_features")))
+        return tf.random.uniform((num_samples, self.model_dimensions.get("seq_length"), self.model_dimensions.get("input_features")))
 
     # gets one instance of a batch from the data
     def batch_data(self, x_train):
@@ -417,9 +406,6 @@ class TimeGAN(Model):
         return tf.squeeze(X_hat)
 
     def autoencode_seq(self, sequences):
-
-        # normalize the real sequence
-        sequences = sequences/self.model_parameters.get("pi")
 
         # if a single sequence is passed in expand the dimension
         seq = np.expand_dims(sequences, axis=0)
