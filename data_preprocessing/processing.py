@@ -32,10 +32,10 @@ def generate_sequences(data, seq_len, add_ema, ema_size, scaler_type):
 
     scaler = None
 
-    if scaler_type = 'minmax':
+    if scaler_type == 'minmax':
         scaler = MinMaxScaler(feature_range=(-1,1)).fit(data)
         data = scaler.transform(data)
-    if scaler_type = 'normalize':
+    if scaler_type == 'normalize':
         scaler = StandardScaler().fit(data)
         data = scaler.transform(data)
 
