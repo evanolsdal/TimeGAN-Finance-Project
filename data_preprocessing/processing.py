@@ -40,8 +40,9 @@ def generate_sequences(data, seq_len, add_EMA, ema_size):
         x = data[i:i+seq_len,:]
 
         if add_EMA:
-
-            x = np.concatenate(x, add_EMA(x, ema_size), axis=1)
+            
+            ema_data = add_EMA(x, ema_size)
+            x = np.concatenate((x, ema_data), axis=1)
 
         temp_data.append(x)
 
