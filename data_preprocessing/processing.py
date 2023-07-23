@@ -28,7 +28,7 @@ def transform_percent_change(data):
 
 
 # This function creates sequenced data from the raw data and returns a numpy array
-def generate_sequences(data, seq_len):
+def generate_sequences(data, seq_len, add_EMA, ema_size):
 
     scaler = StandardScaler().fit(data)
     data = scaler.transform(data)
@@ -38,9 +38,29 @@ def generate_sequences(data, seq_len):
     for i in range(len(data)-seq_len+1):
 
         x = data[i:i+seq_len,:]
+
+        if add_EMA:
+
+            x = add_EMA(x, ema_size)
+
         temp_data.append(x)
+
 
     return np.array(temp_data), scaler
 
 
+def add_EMA(sequence, k):
 
+
+    alpha = 2 / (k + 1)
+    ema_values = np.zeros_like(sequence)
+
+    # Calculate the initial EMA using the first value in each column
+    ema_values[0] = sequence[0]
+
+    for i in range(1, sequence.shape[0]):
+        current_price = sequence[i]
+        ema = alpha * current_price + (1 - alpha) * ema_values[i - 1]
+        ema_values[i] = ema
+
+    return ema_values

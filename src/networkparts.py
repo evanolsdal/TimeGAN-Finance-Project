@@ -18,7 +18,9 @@ class Generator:
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers+1):
             model.add(GRU(units=self.embedded_units, return_sequences=True))
+            model.add(Rescaling(scale=self.scale_tanh))
         model.add(Dense(units = self.embedded_units, activation='tanh'))
+        model.add(Rescaling(scale=self.scale_tanh))
 
         return model
 
@@ -39,6 +41,7 @@ class Recovery:
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
             model.add(GRU(units=self.num_features, return_sequences=True))
+            model.add(Rescaling(scale = self.scale_tanh))
         model.add(Dense(units=self.num_features, activation = None))
 
         return model
@@ -60,7 +63,9 @@ class Embedder:
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
             model.add(GRU(units=self.embedded_units, return_sequences=True))
+            model.add(Rescaling(scale=self.scale_tanh))
         model.add(Dense(units = self.embedded_units, activation = 'tanh'))
+        model.add(Rescaling(scale=self.scale_tanh))
 
         return model
 
@@ -105,7 +110,9 @@ class Supervisor:
         model.add(Input(shape=self.input_shape))
         for i in range(self.n_layers):
             model.add(GRU(units=self.embedded_units, return_sequences=True))
+            model.add(Rescaling(scale=self.scale_tanh))
         model.add(Dense(units = self.embedded_units, activation = 'tanh'))
+        model.add(Rescaling(scale=self.scale_tanh))
 
         return model
 
