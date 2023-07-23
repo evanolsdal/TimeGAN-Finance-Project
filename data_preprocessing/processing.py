@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 """
 This module creates the functions used for pre_processing the stock data into a format suitable for training
@@ -30,7 +30,7 @@ def transform_percent_change(data):
 # This function creates sequenced data from the raw data and returns a numpy array
 def generate_sequences(data, seq_len, add_ema, ema_size):
 
-    scaler = StandardScaler().fit(data)
+    scaler = MinMaxScaler().fit(data)
     data = scaler.transform(data)
 
     temp_data = []

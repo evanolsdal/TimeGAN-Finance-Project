@@ -120,9 +120,10 @@ class TimeGAN(Model):
             H = self.supervisor(E, training=True)
             X_hat = self.recovery(E, training=True)
 
+            output_features = self.model_dimensions.get("output_features")
             # compute the losses
             S_loss = self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
-            R_loss = self.reconstruction_loss(X, X_hat)
+            R_loss = self.reconstruction_loss(X[:,:,:output_features], X_hat)
 
             # combine the losses
             total_loss = R_loss + self.model_parameters.get("lambda")*S_loss
@@ -189,10 +190,11 @@ class TimeGAN(Model):
             Y_hat = self.discriminator(E_hat, training=False)
             Y = tf.zeros_like(Y_hat)
 
+            output_features = self.model_dimensions.get("output_features")
             # compute the losses
             S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
             S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
-            R_loss = self.reconstruction_loss(X, X_hat)
+            R_loss = self.reconstruction_loss(X[:,:,:output_features], X_hat)
             U_loss = self.unsupervised_loss(Y, Y_hat)
 
             # combine the losses
@@ -306,7 +308,7 @@ class TimeGAN(Model):
                 S_loss, R_loss = self.train_autoencoder_step(batch)
 
                 # store current losses
-                epoch_losses.append([R_loss, S_loss])
+                epoch_losses.append([S_loss, R_loss])
 
                 print(f"Epoch {epoch}, step {step}: Reconstruction loss = {R_loss}, Supervised loss = {S_loss}")
 
