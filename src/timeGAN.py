@@ -466,9 +466,9 @@ class TimeGAN(Model):
 
         return dataset
 
-    def generate_seq(self):
+    def generate_seq(self, samples):
 
-        Z = self.get_noise(1)
+        Z = self.get_noise(samples)
         E_hat = self.generator(Z)
         X_hat = self.recovery(E_hat)
 

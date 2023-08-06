@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import finance_statistical_properties as fsp
 
 """
 This module deals with visualizing the training losses and the data sequences
@@ -52,7 +53,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
 def plot_generated_sequence(model, sequences, feature, feature_labels):
 
     # get the generated and autoencoded sequence
-    generated_seq = model.generate_seq()
+    generated_seq = model.generate_seq(1)
     seq = sequences[np.random.randint(len(sequences)),:,:]
     autoencoded_seq = model.autoencode_seq(seq)
 
@@ -149,3 +150,32 @@ def plot_losses(losses):
         axs[i].set_ylabel('Loss')
     plt.tight_layout()
     plt.show()
+
+# function that plots the autocorrelation statistics
+def plot_autocorrelations(real_sequences, synthetic_sequences, dim_labels, dim, type):
+
+    # compute the correlations
+    real_correlations, synthetic_correlations = compute_autocorrelations(real_sequences, synthetic_sequences, dim, type)
+    lags = np.arange(len(real_correlations))
+
+    plt.figure(figsize=(10, 6))
+
+    # Plot real autocorrelations
+    plt.subplot(2, 1, 1)
+    plt.plot(lags, real_correlations)
+    plt.title("Real " + type + " for " + dim_labels[dim])
+    plt.ylabel("Correlation")
+    plt.xlabel("Lag")
+
+    # Plot synthetic autocorrelations
+    plt.subplot(2, 1, 2)
+    plt.plot(lags, synthetic_correlations)
+    plt.title("Synthetic " + type + " for " + dim_labels[dim])
+    plt.ylabel("Correlation")
+    plt.xlabel("Lag")
+
+    plt.tight_layout()
+    plt.show()
+
+
+
