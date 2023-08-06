@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import datetime
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from src import networkparts
@@ -74,6 +76,74 @@ class TimeGAN(Model):
         print(self.embedder.summary())
         print("###################################################################")
         print(self.recovery.summary())
+
+    # saves all of the network parts to a specific location, taking in a base location to store everything,
+    # and directory name is either the current datetime or optional name argument
+    def save_models(self, input_dir, name=None):
+
+        # Create the directory based on optional name argument
+        if name is None:
+            # Create a subdirectory with "model" + "current datetime" as its name
+            model_subdir = os.path.join(input_dir, "model_" + datetime.datetime.now().strftime("%Y%m%d_%H%M"))
+        else:
+            # Create a subdirectory with "model" + "name" as its name
+            model_subdir = os.path.join(input_dir, "model_" + name)
+
+        # Make the subdirectory
+        os.makedirs(model_subdir)
+
+        # Save the Generator model
+        generator_path = os.path.join(model_subdir, "generator")
+        self.generator.save(generator_path)
+
+        # Save the Discriminator model
+        discriminator_path = os.path.join(model_subdir, "discriminator")
+        self.discriminator.save(discriminator_path)
+
+        # Save the Supervisor model
+        supervisor_path = os.path.join(model_subdir, "supervisor")
+        self.supervisor.save(supervisor_path)
+
+        # Save the Embedder model
+        embedder_path = os.path.join(model_subdir, "embedder")
+        self.embedder.save(embedder_path)
+
+        # Save the Recovery model
+        recovery_path = os.path.join(model_subdir, "recovery")
+        self.recovery.save(recovery_path)
+
+    # loads all of the network parts of the network model, taking in the path created above
+    def load_models(self, base_directory, model_directory):
+
+        # model part names
+        generator_module = "generator"
+        discriminator_module = "discriminator"
+        supervisor_module = "supervisor"
+        embedder_module = "embedder"
+        recovery_module = "recovery"
+
+        # Construct the full path to the model directory
+        full_model_directory = os.path.join(base_directory, model_directory)
+
+        # Load the Generator model
+        generator_path = os.path.join(full_model_directory, generator_module)
+        self.generator = tf.keras.models.load_model(generator_path)
+
+        # Load the Discriminator model
+        discriminator_path = os.path.join(full_model_directory, discriminator_module)
+        self.discriminator = tf.keras.models.load_model(discriminator_path)
+
+        # Load the Supervisor model
+        supervisor_path = os.path.join(full_model_directory, supervisor_module)
+        self.supervisor = tf.keras.models.load_model(supervisor_path)
+
+        # Load the Embedder model
+        embedder_path = os.path.join(full_model_directory, embedder_module)
+        self.embedder = tf.keras.models.load_model(embedder_path)
+
+        # Load the Recovery model
+        recovery_path = os.path.join(full_model_directory, recovery_module)
+        self.recovery = tf.keras.models.load_model(recovery_path)
 
 
     ####################################################################################################################

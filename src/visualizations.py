@@ -32,6 +32,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     plt.title('Data with Multiple Dimensions')
     plt.xlabel('Dates')
     plt.ylabel('Value')
+    plt.xticks(rotation=45)
     plt.legend()
     plt.show()
 
@@ -40,6 +41,7 @@ def plot_real_sequence(dates, data, labels, seq_length):
     for dim in range(num_dimensions):
         axs[dim].plot(dates, data[:, dim])
         axs[dim].set_title(labels[dim])
+        axs[dim].xticks(rotation=45)
         axs[dim].axhline(y=0, color='red', linestyle='--')
         axs[dim].set_xlabel('Dates')
         axs[dim].set_ylabel('Value')
