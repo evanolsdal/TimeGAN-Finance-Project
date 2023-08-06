@@ -70,6 +70,5 @@ def compute_autocorrelations(real_sequences, synthetic_sequences, dim, type):
 
     return real_correlations, synthetics_correlations
 
-# function that plots
 
 
