@@ -26,7 +26,7 @@ def compute_autocorrelations(real_sequences, synthetic_sequences, dim, type):
     # then compute the correlation
     for i in range(seq_length-1):
 
-        if type = "Linear Autocorrelation":
+        if type == "Linear Autocorrelation":
 
             # find the other sequences
             real_seq_other = np.squeeze(real_sequences[:, i+1])
@@ -40,7 +40,7 @@ def compute_autocorrelations(real_sequences, synthetic_sequences, dim, type):
             real_correlations.append(real_corr)
             synthetics_correlations.append(synth_corr)
 
-        if type = "Volatility Clustering":
+        if type == "Volatility Clustering":
 
             # find the other sequences
             real_seq_other = np.squeeze(real_sequences[:, i+1])
@@ -54,7 +54,7 @@ def compute_autocorrelations(real_sequences, synthetic_sequences, dim, type):
             real_correlations.append(real_corr)
             synthetics_correlations.append(synth_corr)
 
-        if type = "Leverage Effect":
+        if type == "Leverage Effect":
 
             # find the other sequences
             real_seq_other = np.squeeze(real_sequences[:, i+1])
