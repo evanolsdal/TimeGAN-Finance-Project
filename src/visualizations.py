@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from stat_properties import compute_autocorrelations
+from src.stat_properties import compute_autocorrelations
 
 """
 This module deals with visualizing the training losses and the data sequences
