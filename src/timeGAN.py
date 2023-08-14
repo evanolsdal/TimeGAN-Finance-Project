@@ -22,6 +22,7 @@ Inputs:
         - alpha_1: learning rate for the Adam optimizer
         - alpha_2: learning rate for the Adam optimizer
         - theta: scaling factor for the tanh function
+        - is_volatility: determines if supervised loss is based on the regular values or volatility (squared values)
     - loss_funcitons: a dict containing all of the loss functions used for training
         - reconsruction_loss: loss for the autoencoder 
         - supervised_loss: supervised loss function
@@ -188,9 +189,19 @@ class TimeGAN(Model):
             X_hat = self.recovery(E, training=True)
 
             output_features = self.model_dimensions.get("output_features")
+
             # compute the losses
-            S_loss = self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
             R_loss = self.reconstruction_loss(X[:,:,:output_features], X_hat)
+
+            # compute the supervised losses
+            S_loss = 0
+
+            if self.model_parameters.get("is_volatility"):
+                # if supervised learning is type volatility then square the outputs to measure volatility
+                S_loss += self.supervised_loss(E[:, 1:, :] ** 2, H[:, :-1, :] ** 2)
+            else:
+                # else keep the outputs the same
+                S_loss += self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
 
             # combine the losses
             total_loss = R_loss + self.model_parameters.get("lambda")*S_loss
@@ -258,11 +269,24 @@ class TimeGAN(Model):
             Y = tf.zeros_like(Y_hat)
 
             output_features = self.model_dimensions.get("output_features")
+
             # compute the losses
-            S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
-            S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
             R_loss = self.reconstruction_loss(X[:,:,:output_features], X_hat)
             U_loss = self.unsupervised_loss(Y, Y_hat)
+
+            # supervised losses
+            S_loss_e = 0
+            S_loss_g = 0
+
+            if self.model_parameters.get("is_volatility"):
+                # if supervised learning is type volatility then square the outputs to measure volatility
+                S_loss_e += self.supervised_loss(E[:, 1:, :]**2, H_e[:, :-1, :]**2)
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :]**2, H_g[:, :-1, :]**2)
+
+            else:
+                # else keep the outputs the same
+                S_loss_e += self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
 
             # combine the losses
             total_loss_1 = U_loss + \
@@ -286,8 +310,18 @@ class TimeGAN(Model):
             H_g = self.supervisor(E_hat, training=True)
 
             # compute the losses
-            S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
-            S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
+            S_loss_e = 0
+            S_loss_g = 0
+
+            if self.model_parameters.get("is_volatility"):
+                # if supervised learning is type volatility then square the outputs to measure volatility
+                S_loss_e += self.supervised_loss(E[:, 1:, :] ** 2, H_e[:, :-1, :] ** 2)
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :] ** 2, H_g[:, :-1, :] ** 2)
+
+            else:
+                # else keep the outputs the same
+                S_loss_e += self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
 
             # combine the losses
             total_loss_2 = S_loss_e + \
