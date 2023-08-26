@@ -191,7 +191,7 @@ class TimeGAN(Model):
             R_loss = self.reconstruction_loss(X, X_hat)
 
             # compute the supervised losses
-            S_loss = None
+            S_loss = 0
 
             # this section deals with the
             if self.model_parameters.get("is_volatility"):
@@ -200,7 +200,7 @@ class TimeGAN(Model):
                 H = self.supervisor(tf.square(E), training=True)
 
                 # if supervised learning is type volatility then square the outputs to measure volatility
-                S_loss = self.supervised_loss(tf.square(E[:, 1:, :]), tf.square(H[:, :-1, :]))
+                S_loss += self.supervised_loss(tf.square(E[:, 1:, :]), H[:, :-1, :])
 
             else:
 
@@ -208,7 +208,7 @@ class TimeGAN(Model):
                 H = self.supervisor(E, training=True)
 
                 # else keep the outputs the same
-                S_loss = self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
+                S_loss += self.supervised_loss(E[:, 1:, :], H[:, :-1, :])
 
             # combine the losses
             total_loss = R_loss + self.model_parameters.get("lambda")*S_loss
@@ -280,18 +280,18 @@ class TimeGAN(Model):
             U_loss = self.unsupervised_loss(Y, Y_hat)
 
             # supervised losses
-            S_loss_e = None
-            S_loss_g = None
+            S_loss_e = 0
+            S_loss_g = 0
 
             if self.model_parameters.get("is_volatility"):
 
                 # get the supervised outputs
                 H_e = self.supervisor(E, training=True)
-                H_g = self.supervisor(E_hat, training=True)
+                H_g = self.supervisor(tf.square(E_hat), training=True)
 
                 # if supervised learning is type volatility then square the outputs to measure volatility
-                S_loss_e = self.supervised_loss(tf.square(E[:, 1:, :]), tf.square(H_e[:, :-1, :]))
-                S_loss_g = self.supervised_loss(tf.square(E_hat[:, 1:, :]), tf.square(H_g[:, :-1, :]))
+                S_loss_e += self.supervised_loss(tf.square(E[:, 1:, :]), H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(tf.square(E_hat[:, 1:, :]), H_g[:, :-1, :])
 
             else:
 
@@ -300,8 +300,8 @@ class TimeGAN(Model):
                 H_g = self.supervisor(E_hat, training=True)
 
                 # else keep the outputs the same
-                S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
-                S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
+                S_loss_e += self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
 
             # combine the losses
             total_loss_1 = U_loss + \
@@ -321,22 +321,30 @@ class TimeGAN(Model):
             # compute the all of network outputs
             E = self.embedder(X, training=True)
             E_hat = self.generator(Z, training=True)
-            H_e = self.supervisor(E, training=True)
-            H_g = self.supervisor(E_hat, training=True)
 
             # compute the losses
-            S_loss_e = None
-            S_loss_g = None
+            S_loss_e = 0
+            S_loss_g = 0
 
             if self.model_parameters.get("is_volatility"):
+
+                # get the supervisor output
+                H_e = self.supervisor(E, training=True)
+                H_g = self.supervisor(tf.square(E_hat), training=True)
+
                 # if supervised learning is type volatility then square the outputs to measure volatility
-                S_loss_e = self.supervised_loss(tf.square(E[:, 1:, :]), tf.square(H_e[:, :-1, :]))
-                S_loss_g = self.supervised_loss(tf.square(E_hat[:, 1:, :]), tf.square(H_g[:, :-1, :]))
+                S_loss_e += self.supervised_loss(tf.square(E[:, 1:, :]), H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(tf.square(E_hat[:, 1:, :]), H_g[:, :-1, :])
 
             else:
+
+                # get the supervisor output
+                H_e = self.supervisor(E, training=True)
+                H_g = self.supervisor(E_hat, training=True)
+
                 # else keep the outputs the same
-                S_loss_e = self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
-                S_loss_g = self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
+                S_loss_e += self.supervised_loss(E[:, 1:, :], H_e[:, :-1, :])
+                S_loss_g += self.supervised_loss(E_hat[:, 1:, :], H_g[:, :-1, :])
 
             # combine the losses
             total_loss_2 = S_loss_e + \
