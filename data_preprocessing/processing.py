@@ -1,34 +1,22 @@
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 """
 This module creates the functions used for pre_processing the stock data into a format suitable for training
 """
 
 # This function loads the data placed in the data subfolder, where the path argument is the name of the data in that
-# folder. The function loads in the csv into a pandas df, then converts this to np array and reverses the order so
-# the data is chronologically ordered.
-def import_data(path, dates):
+# folder. The function loads in the csv into a pandas df, then converts this to np array, and reverses the order if desired
+def import_data(path, reverse):
 
-    if dates:
-        return pd.read_csv(f"data/{path}").values[:,0][::-1]
-    else:
-        return pd.read_csv(f"data/{path}").values[:,1:][::-1]
+    if reverse:
+        return pd.read_csv(f"data/{path}").values[::-1]
 
+    return pd.read_csv(f"data/{path}").values
 
-# This function transforms the values into percent changes
-def transform_percent_change(data):
-
-    diff = np.diff(data, n=1, axis = 0)
-
-    percentage = diff / data[:-1,:]
-
-    return percentage
 
 
 # This function creates sequenced data from the raw data and returns a numpy array
-def generate_sequences(data, seq_len, add_ema, ema_size, scaler_type):
+"""def generate_sequences(data, seq_len, add_ema, ema_size, scaler_type):
 
     scaler = None
 
@@ -55,7 +43,9 @@ def generate_sequences(data, seq_len, add_ema, ema_size, scaler_type):
 
     return np.array(temp_data), scaler
 
+"""
 
+"""
 def add_EMA(sequence, k):
 
 
@@ -71,3 +61,4 @@ def add_EMA(sequence, k):
         ema_values[i] = ema
 
     return ema_values
+"""
